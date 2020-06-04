@@ -3,9 +3,9 @@
 mkdir -p html
 
 LC="/fr" # empty for english
+LANG=$(curl https://www.theickabog.com$LC/read-the-story/ | pup 'html attr{lang}')
 HTML_FILE=ickabog.html
-MAIN_TITLE='The Ickabog'
-LANG="en-US"
+MAIN_TITLE=$(curl https://www.theickabog.com$LC/read-the-story/ | pup 'ul.chapters__list a json{}' | jq -r '[.[] | {url: .href, chapter: .children[0].children[0].children[0].children[0].text, title: .children[0].children[0].children[0].children[1].text}] | sort_by(.chapter) | .[]|[.chapter, .title, .url] | @tsv' | grep " 2\t" | while IFS=$'\t' read -r chapter title url; do echo "$title"; done)
 echo "<html><head><title>$MAIN_TITLE</title></head><body>" > "$HTML_FILE"
 
 function download_chapter() {
@@ -31,8 +31,6 @@ echo "</body></html>" >> "$HTML_FILE"
 #    "$HTML_FILE"
 
 #pdftk cover.pdf ickabog1.pdf cat output ickabog.pdf
-
-LANG=$(curl https://www.theickabog.com$LC/read-the-story/ | pup 'html attr{lang}')
 
 echo "<dc:title id=\"epub-title-1\">$MAIN_TITLE</dc:title>" > metadata.xml
 echo "<dc:date>$(date -I)</dc:date>" >> metadata.xml
