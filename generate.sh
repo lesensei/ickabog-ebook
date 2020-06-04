@@ -6,7 +6,7 @@ LC="/fr" # empty for english
 PUP=/root/go/bin/pup
 LANG=$(curl https://www.theickabog.com$LC/read-the-story/ | $PUP 'html attr{lang}')
 HTML_FILE=ickabog.html
-MAIN_TITLE=$(curl https://www.theickabog.com$LC/read-the-story/ | $PUP 'ul.chapters__list a json{}' | jq -r '[.[] | {url: .href, chapter: .children[0].children[0].children[0].children[0].text, title: .children[0].children[0].children[0].children[1].text}] | sort_by(.chapter) | .[]|[.chapter, .title, .url] | @tsv' | grep " 2\t" | while IFS=$'\t' read -r chapter title url; do echo "$title"; done)
+MAIN_TITLE=$(curl https://www.theickabog.com$LC/read-the-story/ | $PUP 'ul.chapters__list a json{}' | jq -r '[.[] | {url: .href, chapter: .children[0].children[0].children[0].children[0].text, title: .children[0].children[0].children[0].children[1].text}] | sort_by(.chapter) | .[]|[.chapter, .title, .url] | @tsv' | grep $' 2\t' | while IFS=$'\t' read -r chapter title url; do echo "$title"; done)
 OUTPUT_DIR=out
 
 mkdir -p $OUTPUT_DIR
@@ -48,6 +48,8 @@ pandoc --from=html --to=epub \
     --epub-cover-image=cover.jpg \
     --metadata title="$MAIN_TITLE" \
     "$HTML_FILE"
+
+ebook-convert "$OUTPUT_DIR/ickabog.epub" "$OUTPUT_DIR/ickabog.mobi"
 
 #pandoc --from=html --to=pdf \
 #    -V fontsize=18pt \
