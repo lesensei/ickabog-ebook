@@ -51,7 +51,7 @@ pandoc --from=html --to=epub \
     --metadata title="$MAIN_TITLE" \
     "$HTML_FILE"
 
-ebook-convert "$OUTPUT_DIR/ickabog.epub" "$OUTPUT_DIR/ickabog.mobi"
+XDG_RUNTIME_DIR=/tmp/runtime-root ebook-convert out/ickabog.epub out/ickabog.mobi > /dev/null
 
 #pandoc --from=html --to=pdf \
 #    -V fontsize=18pt \
