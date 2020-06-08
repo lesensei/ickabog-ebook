@@ -25,46 +25,29 @@ wget --quiet https://www.theickabog.com$LC/read-the-story/ -O- | $PUP 'ul.chapte
 
 echo "</body></html>" >> "$HTML_FILE"
 
-#pandoc --from=html --to=pdf \
-#    --output=ickabog1.pdf \
-#    --metadata title="The Ickabog" \
-#    --metadata author="J.K Rowling" \
-#    --pdf-engine=xelatex \
-#    --dpi=300 \
-#    -V book \
-#    -V lang=en-US \
-#    -V geometry=margin=1.5cm \
-#    "$HTML_FILE"
+pandoc --from=html --to=pdf \
+    --output=ickabog1.pdf \
+    --metadata title="$MAIN_TITLE" \
+    --metadata author="J.K Rowling" \
+    --pdf-engine=xelatex \
+    --dpi=300 \
+    -V book \
+    -V lang=$LANG \
+    -V geometry=margin=1.5cm \
+    "$HTML_FILE"
 
-#pdftk cover.pdf ickabog1.pdf cat output ickabog.pdf
+qpdf --empty --pages cover.pdf ickabog1.pdf -- "$OUTPUT_DIR/ickabog.pdf"
 
-echo "<dc:title id=\"epub-title-1\">$MAIN_TITLE</dc:title>" > metadata.xml
+echo "<dc:title id=\"epub-title-1\" opf:type=\"main\">$MAIN_TITLE</dc:title>" > metadata.xml
 echo "<dc:date>$(date -I)</dc:date>" >> metadata.xml
-echo "<dc:lang>$LANG</dc:lang>" >> metadata.xml
-echo "<dc:creator id="epub-creator-1" opf:role="aut">J.K Rowling</dc:creator>" >> metadata.xml
+echo "<dc:language>$LANG</dc:language>" >> metadata.xml
+echo "<dc:creator id=\"epub-creator-1\" opf:role=\"aut\">J.K Rowling</dc:creator>" >> metadata.xml
 
 pandoc --from=html --to=epub \
     --output="$OUTPUT_DIR/ickabog.epub" \
     --epub-metadata=metadata.xml \
     --epub-cover-image=cover.jpg \
 	--epub-chapter-level=2 \
-    --metadata title="$MAIN_TITLE" \
     "$HTML_FILE"
 
-XDG_RUNTIME_DIR=/tmp/runtime-root ebook-convert out/ickabog.epub out/ickabog.mobi > /dev/null
-
-#pandoc --from=html --to=pdf \
-#    -V fontsize=18pt \
-#    --output=ickabog2.pdf \
-#    --metadata title="The Ickabog" \
-#    --metadata author="J.K Rowling" \
-#    --pdf-engine=context \
-#    -V margin-left=0cm \
-#    -V margin-right=0cm \
-#    -V margin-top=0cm \
-#    -V margin-bottom=0cm \
-#    -V geometry=margin=0cm \
-#    -V lang=en-US \
-#    "$HTML_FILE"
-
-#pdftk cover.pdf ickabog2.pdf cat output ickabog-large.pdf
+./kindlegen "$OUTPUT_DIR/ickabog.epub"

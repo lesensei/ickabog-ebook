@@ -2,26 +2,39 @@
 
 Generates ebooks for The Ickabog by J.K Rowling. Original text from https://www.theickabog.com/
 
+Initially based off of https://github.com/captn3m0/ickabog-ebook but adds:
+- Support for other languages
+- Fetches the list of chapters from the website itslef
+- Uses kindlegen to convert to mobi
+- Docker recipe to run this without hassle
+
 ## Dependencies:
 
 - `wget`
 - [`pup`](https://github.com/ericchiang/pup)
 - [`pandoc`](https://pandoc.org/)
-- [`pdftk`]
+- [`qpdf`]
+- [`kindlegen`](https://www.amazon.com/gp/feature.html?ie=UTF8&docId=1000765211)
+
+Or you can build a container using the Dockerfile (look at the volume section to get your fresh PDF, Epub and MOBI copies).
 
 ## How to run
 
+### Manually
+
+Install the dependencies then run
+
 `./generate.sh`
 
-You should have `ickabog.epub`, and `ickabog.pdf` in your directory after the script finishes. If you have [ConTeXt](https://wiki.contextgarden.net/Main_Page) installed, you will also get a `ickabog-large.pdf` file with large fonts to be kid-friendly.
+You should have `ickabog.epub`, `ickabog.mobi` and `ickabog.pdf` in your directory after the script finishes.
 
-## Known Issues
+### Using Docker
 
-2. The PDF is optimized for few pages of printing, so has a small font size by default. If you'd like a kid-friendly version, install context to get `ickabog-large.pdf` file.
+`cd` to the directory containing the `Dockerfile` recipe, then run `docker build -t ickabook .`
 
-## Extra
+Once the build is complete, you can run `docker run -it -v /your/ouput/dir:/data/out ickabook`
 
-A list of my other EBook generation projects: https://captnemo.in/ebooks/, includes a link to other related projects as well.
+`/your/output/dir` should be a preexisting dir where you want to find the aforementionned files after the container has run.
 
 ## Credits
 
