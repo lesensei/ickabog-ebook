@@ -21,7 +21,7 @@ function download_chapter() {
     cat "html/$2.html" | $PUP 'article div.row:nth-child(2) div.entry-content' >> "$HTML_FILE"
 }
 
-wget --quiet https://www.theickabog.com$LC/read-the-story/ -O- | $PUP 'ul.chapters__list a json{}' | jq -r '[.[] | {url: .href, chapter: .children[0].children[0].children[0].children[0].text, title: .children[0].children[0].children[0].children[1].text}] | sort_by(.chapter) | .[]|[.chapter, .title, .url] | @tsv' | while IFS=$'\t' read -r chapter title url; do download_chapter "$url" "$chapter" "$title"; done
+wget --quiet https://www.theickabog.com$LC/read-the-story/ -O- | $PUP 'ul.chapters__list a json{}' | jq -r '[.[] | {url: .href, chapter: .children[0].children[0].children[0].children[0].text, title: .children[0].children[0].children[0].children[1].text}] | sort_by(.chapter | match("[0-9]+$")) | .[]|[.chapter, .title, .url] | @tsv' | while IFS=$'\t' read -r chapter title url; do download_chapter "$url" "$chapter" "$title"; done
 
 echo "</body></html>" >> "$HTML_FILE"
 
