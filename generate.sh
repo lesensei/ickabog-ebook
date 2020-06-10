@@ -48,14 +48,19 @@ cat <<__METADATA__ > metadata.xml
 <dc:creator opf:role="aut">J.K Rowling</dc:creator>
 __METADATA__
 
-pandoc --from=html \
-    --output="$OUTPUT_DIR/ickabog.epub" \
-    --epub-metadata=metadata.xml \
-    --epub-cover-image=cover.jpg \
-    --epub-chapter-level=1 \
-    "$HTML_FILE"
+if command -v pandoc > /dev/null; then
+    pandoc --from=html \
+        --output="$OUTPUT_DIR/ickabog.epub" \
+        --epub-metadata=metadata.xml \
+        --epub-cover-image=cover.jpg \
+        --epub-chapter-level=1 \
+        "$HTML_FILE"
 
-echo "[+] Generated $OUTPUT_DIR/ickabog.epub"
+    echo "[+] Generated $OUTPUT_DIR/ickabog.epub"
+else
+    echo "[-] Could not generate EPUB: pandoc not installed. Aborting"
+	exit -1
+fi
 
 if command -v kindlegen > /dev/null; then
     kindlegen "$OUTPUT_DIR/ickabog.epub" > /dev/null 2>&1
@@ -70,23 +75,27 @@ else
     echo "[-] Could not generate MOBI, install kindlegen or calibre"
 fi
 
-command -v xelatex >/dev/null && \
-pandoc --from=html \
-    --pdf-engine=xelatex \
-    --metadata title="$MAIN_TITLE" \
-    --metadata author="J.K Rowling" \
-    --output="$OUTPUT_DIR/ickabog-no-cover.pdf" \
-    -V lang="$LANG" \
-    -V geometry=margin=1.5cm \
-    "$HTML_FILE"
+if command -v xelatex >/dev/null; then
+    pandoc --from=html \
+        --pdf-engine=xelatex \
+        --metadata title="$MAIN_TITLE" \
+        --metadata author="J.K Rowling" \
+        --output="$OUTPUT_DIR/ickabog-no-cover.pdf" \
+        -V lang="$LANG" \
+        -V geometry=margin=1.5cm \
+        "$HTML_FILE"
 
-if command -v qpdf > /dev/null; then
-    qpdf --empty --pages cover.pdf "$OUTPUT_DIR/ickabog-no-cover.pdf" -- "$OUTPUT_DIR/ickabog.pdf"
+    if command -v qpdf > /dev/null; then
+        qpdf --empty --pages cover.pdf "$OUTPUT_DIR/ickabog-no-cover.pdf" -- "$OUTPUT_DIR/ickabog.pdf"
+    else
+        mv "$OUTPUT_DIR/ickabog-no-cover.pdf" "$OUTPUT_DIR/ickabog.pdf"
+    fi
+    
+	echo "[+] Generated PDF using xelatex: $OUTPUT_DIR/ickabog.pdf"
 else
-    mv "$OUTPUT_DIR/ickabog-no-cover.pdf" "$OUTPUT_DIR/ickabog.pdf"
+    echo "[-] Could not generate PDF, install xelatex"
 fi
 
-echo "[+] Generated PDF using xelatex: $OUTPUT_DIR/ickabog.pdf"
 
 # Run only if context is available
 if command -v context>/dev/null; then
@@ -109,6 +118,9 @@ if command -v context>/dev/null; then
     else
         mv "$OUTPUT_DIR/ickabog-no-cover.pdf" "$OUTPUT_DIR/ickabog-large.pdf"
     fi
+
+    echo "[+] Generated PDF using context: $OUTPUT_DIR/ickabog-large.pdf"
+else
+    echo "[-] Could not generate large font PDF, install context"
 fi
 
-echo "[+] Generated PDF using context: $OUTPUT_DIR/ickabog-large.pdf"
