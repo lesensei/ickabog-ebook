@@ -6,7 +6,7 @@ OUTPUT_DIR=out
 
 mkdir -p html
 mkdir -p "$OUTPUT_DIR"
-MAIN_STORY_OUTPUT_FILE="$OUTPUT_DIR/read-the-story.html"
+MAIN_STORY_OUTPUT_FILE="html/read-the-story.html"
 HTML_FILE=ickabog.html
 
 LC=${LC:-""}
