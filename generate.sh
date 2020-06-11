@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -euo pipefail
 IFS=$'\n\t'
 
@@ -15,12 +15,27 @@ if [[ "$LC" != "" ]]; then
 fi
 MAIN_STORY_URL="https://www.theickabog.com$LC/read-the-story/"
 
+if ! [ -x "$(command -v wget)" ] ; then
+	echo "[-] wget command missing: aborting"
+	exit -1
+fi
+
 echo "[+] Fetching $MAIN_STORY_URL"
 
 wget --quiet "$MAIN_STORY_URL" --output-document "$MAIN_STORY_OUTPUT_FILE"
 
+if ! [ -x "$(command -v pup)" ] ; then
+	echo "[-] pup command missing: aborting"
+	exit -1
+fi
+
 LANG=$(cat "$MAIN_STORY_OUTPUT_FILE"| pup 'html attr{lang}')
 echo "[+] Language set to $LANG"
+
+if ! [ -x "$(command -v jq)" ] ; then
+	echo "[-] jq command missing: aborting"
+	exit -1
+fi
 
 MAIN_TITLE=$(cat "$MAIN_STORY_OUTPUT_FILE" | pup 'ul.chapters__list a json{}' | jq -r '[.[] | {url: .href, chapter: .children[0].children[0].children[0].children[0].text, title: .children[0].children[0].children[0].children[1].text}] | sort_by(.chapter) | .[]|[.chapter, .title, .url] | @tsv' | grep $' 2\t' | while IFS=$'\t' read -r chapter title url; do echo "$title"; done)
 
@@ -30,8 +45,7 @@ echo "<html lang=$LANG><head><meta charset=UTF-8><title>$MAIN_TITLE</title></hea
 
 # args = "$url" "$chapter" "$title"
 function download_chapter() {
-    [[ $2 =~ 1$ ]] && MAIN_TITLE=$3
-    URL=$( [[ $1 =~ ^http ]] && echo "$1" || echo "https://www.theickabog.com$1" )
+    URL=$( ( echo -e "$1" | grep -Eq ^http ) && echo "$1" || echo "https://www.theickabog.com$1" )
     [ -s "html/$2.html" ] || wget --quiet "$URL" -O "html/$2.html"
     echo "<h1>$3</h1>" >> "$HTML_FILE"
     cat "html/$2.html" | pup 'article div.row:nth-child(2) div.entry-content' >> "$HTML_FILE"
@@ -48,7 +62,7 @@ cat <<__METADATA__ > metadata.xml
 <dc:creator opf:role="aut">J.K Rowling</dc:creator>
 __METADATA__
 
-if command -v pandoc > /dev/null; then
+if [ -x "$(command -v pandoc)" ] ; then
     pandoc --from=html \
         --output="$OUTPUT_DIR/ickabog.epub" \
         --epub-metadata=metadata.xml \
@@ -56,26 +70,38 @@ if command -v pandoc > /dev/null; then
         --epub-chapter-level=1 \
         "$HTML_FILE"
 
-    echo "[+] Generated $OUTPUT_DIR/ickabog.epub"
+	if [[ $? = 0 ]]; then
+        echo "[+] Generated $OUTPUT_DIR/ickabog.epub"
+	else
+	    echo "[-] EPUB generation with pandoc failed"
+    fi
 else
-    echo "[-] Could not generate EPUB: pandoc not installed. Aborting"
+    echo "[-] pandoc command missing: aborting"
 	exit -1
 fi
 
-if command -v kindlegen > /dev/null; then
+if [ -x "$(command -v kindlegen)" ] ; then
     kindlegen "$OUTPUT_DIR/ickabog.epub" > /dev/null 2>&1
-    echo "[+] Generated MOBI using kindlegen: $OUTPUT_DIR/ickabog.mobi"
-elif command -v ebook-convert > /dev/null; then
+	if [[ $? = 0 ]]; then
+        echo "[+] Generated MOBI using kindlegen: $OUTPUT_DIR/ickabog.mobi"
+	else
+	    echo "[-] MOBI generation with kindlegen failed"
+    fi
+elif [ -x "$(command -v ebook-convert)" ] ; then
     ebook-convert "$OUTPUT_DIR/ickabog.epub" \
         "$OUTPUT_DIR/ickabog.mobi" \
         --metadata title="$MAIN_TITLE" \
         > /dev/null 2>&1
-    echo "[+] Generated MOBI using ebook-convert: $OUTPUT_DIR/ickabog.mobi"
+	if [[ $? = 0 ]]; then
+        echo "[+] Generated MOBI using ebook-convert: $OUTPUT_DIR/ickabog.mobi"
+	else
+	    echo "[-] MOBI generation with ebook-convert failed"
+    fi
 else
-    echo "[-] Could not generate MOBI, install kindlegen or calibre"
+    echo "[-] Both kindlegen and calibre missing: could not generate MOBI"
 fi
 
-if command -v xelatex >/dev/null; then
+if [ -x "$(command -v xelatex)" ] ; then
     pandoc --from=html \
         --pdf-engine=xelatex \
         --metadata title="$MAIN_TITLE" \
@@ -85,20 +111,26 @@ if command -v xelatex >/dev/null; then
         -V geometry=margin=1.5cm \
         "$HTML_FILE"
 
-    if command -v qpdf > /dev/null; then
-        qpdf --empty --pages cover.pdf "$OUTPUT_DIR/ickabog-no-cover.pdf" -- "$OUTPUT_DIR/ickabog.pdf"
+    if [ -x "$(command -v qpdf)" ] ; then
+	    if [[ $? = 0 ]]; then
+            qpdf --empty --pages cover.pdf "$OUTPUT_DIR/ickabog-no-cover.pdf" -- "$OUTPUT_DIR/ickabog.pdf"
+			echo "  [+] Added cover to PDF"
+	    else
+	        echo "  [-] Adding cover to PDF with qpdf failed"
+        fi
     else
+	    echo "  [-] qpdf command missing: not adding cover to PDF."
         mv "$OUTPUT_DIR/ickabog-no-cover.pdf" "$OUTPUT_DIR/ickabog.pdf"
     fi
     
 	echo "[+] Generated PDF using xelatex: $OUTPUT_DIR/ickabog.pdf"
 else
-    echo "[-] Could not generate PDF, install xelatex"
+    echo "[-] xelatex command missing: could not generate PDF"
 fi
 
 
 # Run only if context is available
-if command -v context>/dev/null; then
+if [ -x "$(command -v context)" ] ; then
     pandoc --from=html --to=pdf \
         -V fontsize=18pt \
         --output="$OUTPUT_DIR/ickabog-large-no-cover.pdf" \
@@ -113,14 +145,20 @@ if command -v context>/dev/null; then
         -V lang="$LANG" \
         "$HTML_FILE"
 
-    if command -v qpdf > /dev/null; then
-        qpdf --empty --pages cover.pdf "$OUTPUT_DIR/ickabog-large-no-cover.pdf" -- "$OUTPUT_DIR/ickabog-large.pdf"
+    if [ -x "$(command -v qpdf)" ] ; then
+	    if [[ $? = 0 ]]; then
+            qpdf --empty --pages cover.pdf "$OUTPUT_DIR/ickabog-large-no-cover.pdf" -- "$OUTPUT_DIR/ickabog-large.pdf"
+			echo "  [+] Added cover to large font PDF"
+	    else
+	        echo "  [-] Adding cover to large font PDF with qpdf failed"
+        fi
     else
+	    echo "  [-] qpdf command missing: not adding cover to large font PDF"
         mv "$OUTPUT_DIR/ickabog-no-cover.pdf" "$OUTPUT_DIR/ickabog-large.pdf"
     fi
 
-    echo "[+] Generated PDF using context: $OUTPUT_DIR/ickabog-large.pdf"
+    echo "[+] Generated large font PDF using context: $OUTPUT_DIR/ickabog-large.pdf"
 else
-    echo "[-] Could not generate large font PDF, install context"
+    echo "[-] context command missing: could not generate large font PDF"
 fi
 

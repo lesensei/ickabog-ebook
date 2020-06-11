@@ -14,10 +14,10 @@ RUN unzip pup.zip && \
     mv kindlegen /usr/bin && \
     cd .. && \
     rm -rf kindlegen && \
-    apk add --no-cache bash jq qpdf
+    apk add --no-cache jq qpdf
 
 COPY cover.pdf cover.jpg generate.sh /src/
 
 VOLUME /src/out
 
-ENTRYPOINT ["/src/generate.sh"]
+CMD ["/src/generate.sh"]
