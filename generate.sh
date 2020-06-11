@@ -45,7 +45,7 @@ echo "<html lang=$LANG><head><meta charset=UTF-8><title>$MAIN_TITLE</title></hea
 
 # args = "$url" "$chapter" "$title"
 function download_chapter() {
-    URL=$( ( echo -e "$1" | grep -Eq ^http ) && echo "$1" || echo "https://www.theickabog.com$1" )
+    URL=$( ( echo -n "$1" | grep -Eq ^http ) && echo "$1" || echo "https://www.theickabog.com$1" )
     [ -s "html/$2.html" ] || wget --quiet "$URL" -O "html/$2.html"
     echo "<h1>$3</h1>" >> "$HTML_FILE"
     cat "html/$2.html" | pup 'article div.row:nth-child(2) div.entry-content' >> "$HTML_FILE"
